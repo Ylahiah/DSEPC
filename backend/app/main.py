@@ -163,28 +163,4 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"detail": "Internal Server Error. Revise error.log en backend."}
     )
 
-import os
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 
-# Configurar el directorio del frontend (relativo a main.py -> app -> backend -> DSEPC/frontend/dist)
-FRONTEND_DIST = settings.BASE_DIR.parent / "frontend" / "dist"
-
-if os.path.exists(FRONTEND_DIST):
-    # Montar los assets estáticos (js, css, images) generados por Vite
-    app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIST / "assets")), name="assets")
-
-    # Ruta comodín para que React Router maneje las URLs del frontend
-    @app.get("/{full_path:path}")
-    async def serve_frontend(full_path: str):
-        # Si la ruta existe como archivo estático en la raíz de dist (ej. vite.svg, favicon.svg)
-        potential_file = FRONTEND_DIST / full_path
-        if full_path and os.path.isfile(potential_file):
-            return FileResponse(str(potential_file))
-            
-        # Para cualquier otra ruta, devolvemos index.html para que React Router se encargue
-        index_file = FRONTEND_DIST / "index.html"
-        if os.path.isfile(index_file):
-            return FileResponse(str(index_file))
-        
-        return JSONResponse(status_code=404, content={"detail": "Frontend no encontrado."})
