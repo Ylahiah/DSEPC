@@ -170,7 +170,22 @@ class AdminReportsService:
         styles = getSampleStyleSheet()
         elements: list = []
 
-        elements.append(Paragraph("Reporte General DSEPC", styles["Title"]))
+        if "Center" not in styles:
+            from reportlab.lib.styles import ParagraphStyle
+            styles.add(ParagraphStyle(name='Center', alignment=1))
+            
+        banner_data = [[Paragraph("<font color='white' size='18'><b>REPORTE GENERAL DSEPC</b></font>", styles["Center"])]]
+        banner = Table(banner_data, colWidths=[700])
+        banner.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#0f172a")),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('TOPPADDING', (0,0), (-1,-1), 12),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 12),
+        ]))
+        elements.append(banner)
+        elements.append(Spacer(1, 20))
+        
         elements.append(
             Paragraph(
                 f"Generado: {self._format_datetime(datetime.now(timezone.utc))}",
@@ -179,11 +194,14 @@ class AdminReportsService:
         )
         elements.append(Spacer(1, 12))
 
+        aptos_count = sum(1 for s in finished_sessions if self._calculate_session_score_percentage(s) >= 80.0)
+        
         summary_table = Table(
             [
                 ["Indicador", "Valor"],
                 ["Candidatos evaluados", dashboard.evaluated_candidates_count],
                 ["Sesiones cerradas", dashboard.completed_sessions_count],
+                ["Candidatos Aptos", f"{aptos_count} (Umbral: 80%)"],
                 ["Promedio general", f"{dashboard.average_score_percentage:.2f}%"],
                 ["Tiempo promedio", self._format_duration(dashboard.average_time_seconds)],
                 ["Mejor candidato", dashboard.best_candidate_name or "Sin datos"],
@@ -224,7 +242,7 @@ class AdminReportsService:
         elements.append(Paragraph("Top 10 ranking", styles["Heading2"]))
         ranking_table = Table(
             [
-                ["Pos.", "Candidato", "Promedio", "Mejor", "Intentos", "Tiempo promedio"]
+                ["Pos.", "Candidato", "Promedio", "Mejor", "Estatus", "Intentos", "Tiempo prom."]
             ]
             + [
                 [
@@ -232,12 +250,14 @@ class AdminReportsService:
                     item.candidate_name,
                     f"{item.average_score_percentage:.2f}%",
                     f"{item.best_score_percentage:.2f}%",
+                    "APTO" if item.best_score_percentage >= 80.0 else "NO APTO",
                     item.attempts_count,
                     self._format_duration(item.average_time_seconds),
                 ]
                 for index, item in enumerate(dashboard.ranking[:10], start=1)
             ],
             repeatRows=1,
+            colWidths=[35, 200, 75, 75, 75, 60, 90]
         )
         self._apply_pdf_table_style(ranking_table)
         elements.append(ranking_table)
@@ -246,14 +266,14 @@ class AdminReportsService:
         elements.append(Paragraph("Ultimas sesiones cerradas", styles["Heading2"]))
         sessions_table = Table(
             [
-                ["Sesion", "Candidato", "Plantilla", "Estado", "Porcentaje", "Tiempo", "Cierre"]
+                ["Sesion", "Candidato", "Plantilla", "Estatus", "Porcentaje", "Tiempo", "Cierre"]
             ]
             + [
                 [
                     session.id,
                     self._build_candidate_name(session),
                     session.evaluation_template.name,
-                    session.status,
+                    "APTO" if self._calculate_session_score_percentage(session) >= 80.0 else "NO APTO",
                     f"{self._calculate_session_score_percentage(session):.2f}%",
                     self._format_duration(session.consumed_time_seconds),
                     self._format_datetime(session.submitted_at),
@@ -261,6 +281,7 @@ class AdminReportsService:
                 for session in finished_sessions[:20]
             ],
             repeatRows=1,
+            colWidths=[40, 160, 150, 70, 75, 60, 130]
         )
         self._apply_pdf_table_style(sessions_table)
         elements.append(sessions_table)
@@ -365,22 +386,53 @@ class AdminReportsService:
         output = BytesIO()
         document = SimpleDocTemplate(output, pagesize=landscape(A4))
         styles = getSampleStyleSheet()
+        if "Center" not in styles:
+            from reportlab.lib.styles import ParagraphStyle
+            styles.add(ParagraphStyle(name='Center', alignment=1))
+            
         elements: list = []
 
-        elements.append(Paragraph("Reporte Individual DSEPC", styles["Title"]))
-        elements.append(
-            Paragraph(f"Candidato: {self._build_candidate_name(session)}", styles["Normal"])
-        )
-        elements.append(
-            Paragraph(f"Plantilla: {session.evaluation_template.name}", styles["Normal"])
-        )
-        elements.append(
-            Paragraph(
-                f"Porcentaje obtenido: {self._calculate_session_score_percentage(session):.2f}%",
-                styles["Normal"],
-            )
-        )
-        elements.append(Spacer(1, 12))
+        banner_data = [[Paragraph("<font color='white' size='18'><b>REPORTE INDIVIDUAL DSEPC</b></font>", styles["Center"])]]
+        banner = Table(banner_data, colWidths=[700])
+        banner.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#0f172a")),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('TOPPADDING', (0,0), (-1,-1), 12),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 12),
+        ]))
+        elements.append(banner)
+        elements.append(Spacer(1, 20))
+
+        info_data = [
+            [f"Candidato: {self._build_candidate_name(session)}"],
+            [f"Plantilla: {session.evaluation_template.name}"]
+        ]
+        info_table = Table(info_data, colWidths=[700], hAlign='LEFT')
+        info_table.setStyle(TableStyle([
+            ('FONTNAME', (0,0), (-1,-1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,-1), 11),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ]))
+        elements.append(info_table)
+        elements.append(Spacer(1, 15))
+
+        score_percentage = self._calculate_session_score_percentage(session)
+        is_apto = score_percentage >= 80.0
+        badge_color = colors.HexColor("#16a34a") if is_apto else colors.HexColor("#dc2626")
+        badge_text = "APTO" if is_apto else "NO APTO"
+
+        badge_data = [[Paragraph(f"<font color='white' size='14'><b>DICTAMEN: {badge_text} ({score_percentage:.2f}%)</b></font>", styles["Center"])]]
+        badge = Table(badge_data, colWidths=[300], hAlign='LEFT')
+        badge.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,-1), badge_color),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('TOPPADDING', (0,0), (-1,-1), 10),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 10),
+        ]))
+        elements.append(badge)
+        elements.append(Spacer(1, 15))
 
         summary_table = Table(
             [
