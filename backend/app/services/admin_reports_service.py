@@ -363,7 +363,7 @@ class AdminReportsService:
     def build_session_pdf(self, session_id: int) -> tuple[BytesIO, str]:
         session = self._get_session_or_404(session_id)
         output = BytesIO()
-        document = SimpleDocTemplate(output, pagesize=A4)
+        document = SimpleDocTemplate(output, pagesize=landscape(A4))
         styles = getSampleStyleSheet()
         elements: list = []
 
