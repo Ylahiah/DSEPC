@@ -8,7 +8,7 @@ from openpyxl.styles import Font
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle, KeepTogether
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle, PageBreak
 # pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
 
@@ -427,7 +427,8 @@ class AdminReportsService:
         )
         self._apply_pdf_table_style(category_table)
         elements.append(category_table)
-        elements.append(Spacer(1, 16))
+        elements.append(PageBreak())
+        elements.append(Paragraph("Detalle de preguntas", styles["Heading2"]))
 
 
         question_rows = [
@@ -473,10 +474,7 @@ class AdminReportsService:
 
         questions_table = Table(question_rows, repeatRows=1, colWidths=[35, 195, 95, 95, 205, 55])
         self._apply_pdf_table_style(questions_table)
-        elements.append(KeepTogether([
-            Paragraph("Detalle de preguntas", styles["Heading2"]),
-            questions_table
-        ]))
+        elements.append(questions_table)
 
         document.build(elements)
         output.seek(0)
