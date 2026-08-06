@@ -466,13 +466,7 @@ class AdminReportsService:
                             .replace(">", "&gt;"),
                             styles["Normal"],
                         ),
-                        (
-                            "Correcta"
-                            if session_question.is_correct
-                            else "Incorrecta"
-                            if session_question.is_correct is False
-                            else "Omitida"
-                        ),
+                        self._get_question_result_label(session_question),
                         self._format_duration(session_question.time_spent_seconds),
                     ]
                 )
@@ -488,6 +482,21 @@ class AdminReportsService:
             f"_sesion_{session.id}.pdf"
         )
         return output, filename
+
+    def _get_question_result_label(self, session_question) -> str:
+        if session_question.question.question_type == "excel_practical" and session_question.practical_feedback:
+            import json
+            try:
+                fb = json.loads(session_question.practical_feedback)
+                return f"{fb.get('correct_cells', 0)}/{fb.get('total_cells', 0)} aciertos"
+            except Exception:
+                pass
+        
+        if session_question.is_correct:
+            return "Correcta"
+        if session_question.is_correct is False:
+            return "Incorrecta"
+        return "Omitida"
 
     def _get_finished_sessions(self) -> list[EvaluationSession]:
         sessions = self.repository.list_all_for_dashboard()
@@ -547,7 +556,15 @@ class AdminReportsService:
         for section in session.sections:
             for session_question in section.questions:
                 score_possible += session_question.question.score
-                if session_question.is_correct:
+                if session_question.question.question_type == "excel_practical" and session_question.practical_feedback:
+                    import json
+                    try:
+                        fb = json.loads(session_question.practical_feedback)
+                        score_obtained += session_question.question.score * fb.get("success_rate", 0.0)
+                    except Exception:
+                        if session_question.is_correct:
+                            score_obtained += session_question.question.score
+                elif session_question.is_correct:
                     score_obtained += session_question.question.score
 
         if score_possible == 0:

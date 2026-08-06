@@ -131,7 +131,15 @@ class AdminDashboardService:
                     assert isinstance(casted_session_ids, set)
                     casted_session_ids.add(session.id)
 
-                    if session_question.is_correct:
+                    if session_question.question.question_type == "excel_practical" and session_question.practical_feedback:
+                        import json
+                        try:
+                            fb = json.loads(session_question.practical_feedback)
+                            metrics["score_obtained"] += session_question.question.score * fb.get("success_rate", 0.0)
+                        except Exception:
+                            if session_question.is_correct:
+                                metrics["score_obtained"] += session_question.question.score
+                    elif session_question.is_correct:
                         metrics["score_obtained"] += session_question.question.score
 
         category_averages: list[DashboardCategoryAverageRead] = []
@@ -279,7 +287,15 @@ class AdminDashboardService:
         for section in session.sections:
             for session_question in section.questions:
                 score_possible += session_question.question.score
-                if session_question.is_correct:
+                if session_question.question.question_type == "excel_practical" and session_question.practical_feedback:
+                    import json
+                    try:
+                        fb = json.loads(session_question.practical_feedback)
+                        score_obtained += session_question.question.score * fb.get("success_rate", 0.0)
+                    except Exception:
+                        if session_question.is_correct:
+                            score_obtained += session_question.question.score
+                elif session_question.is_correct:
                     score_obtained += session_question.question.score
 
         if score_possible == 0:

@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
+import json
 from pathlib import Path
 from random import SystemRandom
 from uuid import uuid4
@@ -277,7 +278,7 @@ class CandidateSessionService:
             current_question_index=current_question_index,
         )
 
-        is_valid, validation_message = self.excel_exercise_service.validate_submission(
+        metrics = self.excel_exercise_service.validate_submission(
             excel_exercise,
             workbook_bytes,
         )
@@ -295,13 +296,16 @@ class CandidateSessionService:
         if session_question.first_answered_at is None:
             session_question.first_answered_at = now
 
-        session_question.selected_answer = "Archivo validado" if is_valid else "Archivo con observaciones"
+        success_rate = metrics["success_rate"]
+        is_valid = success_rate == 1.0
+
+        session_question.selected_answer = "Archivo procesado (Puntaje parcial aplicable)"
         session_question.is_answered = True
         session_question.was_omitted = False
         session_question.is_correct = is_valid
         session_question.practical_submission_filename = workbook.filename or excel_exercise.workbook_filename
         session_question.practical_submission_path = str(stored_path)
-        session_question.practical_feedback = validation_message
+        session_question.practical_feedback = json.dumps(metrics)
         session_question.answered_at = now
         session_question.last_answered_at = now
         if session.status == "pending":

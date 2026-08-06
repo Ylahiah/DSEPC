@@ -169,7 +169,7 @@ class ExcelExerciseService:
         self,
         exercise: ExcelExercise,
         workbook_bytes: bytes,
-    ) -> tuple[bool, str]:
+    ) -> dict[str, object]:
         original_path = Path(exercise.workbook_storage_path)
         if not original_path.exists():
             raise HTTPException(
@@ -185,16 +185,18 @@ class ExcelExerciseService:
         )
 
         expected_summary = json.loads(exercise.expected_summary_json)
-        self._ensure_task_results_match(
+        total_cells, correct_cells, errors = self._ensure_task_results_match(
             workbook_bytes=workbook_bytes,
             task_sheet_name=exercise.task_sheet_name,
             expected_summary=expected_summary,
         )
 
-        return (
-            True,
-            "Archivo validado correctamente. Los resultados coinciden con lo esperado.",
-        )
+        return {
+            "total_cells": total_cells,
+            "correct_cells": correct_cells,
+            "incorrect_cells": errors,
+            "success_rate": correct_cells / total_cells if total_cells > 0 else 0.0,
+        }
 
     def _get_or_404(self, exercise_id: int) -> ExcelExercise:
         exercise = self.db.get(ExcelExercise, exercise_id)
@@ -298,7 +300,7 @@ class ExcelExerciseService:
         workbook_bytes: bytes,
         task_sheet_name: str,
         expected_summary: dict[str, object],
-    ) -> None:
+    ) -> tuple[int, int, list[str]]:
         try:
             wb = load_workbook(filename=BytesIO(workbook_bytes), data_only=True)
         except Exception as error:
@@ -315,6 +317,7 @@ class ExcelExerciseService:
             
         ws = wb[task_sheet_name]
         errors = []
+        total_cells = len(expected_summary)
         
         import datetime
         for coord, expected_val in expected_summary.items():
@@ -330,11 +333,8 @@ class ExcelExerciseService:
                 if str(expected_val).strip() != str(actual_val).strip():
                     errors.append(coord)
                     
-        if errors:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Los resultados no coinciden en {len(errors)} celdas. Ejemplo: celda {errors[0]}.",
-            )
+        correct_cells = total_cells - len(errors)
+        return total_cells, correct_cells, errors
 
     def _build_read(self, exercise: ExcelExercise) -> ExcelExerciseRead:
         target_cells = json.loads(exercise.expected_summary_json)
