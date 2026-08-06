@@ -185,7 +185,7 @@ class ExcelExerciseService:
         )
 
         expected_summary = json.loads(exercise.expected_summary_json)
-        total_cells, correct_cells, errors = self._ensure_task_results_match(
+        total_cells, correct_cells, errors, criteria_results = self._ensure_task_results_match(
             workbook_bytes=workbook_bytes,
             task_sheet_name=exercise.task_sheet_name,
             expected_summary=expected_summary,
@@ -196,6 +196,7 @@ class ExcelExerciseService:
             "correct_cells": correct_cells,
             "incorrect_cells": errors,
             "success_rate": correct_cells / total_cells if total_cells > 0 else 0.0,
+            "criteria_results": criteria_results,
         }
 
     def _get_or_404(self, exercise_id: int) -> ExcelExercise:
@@ -269,6 +270,34 @@ class ExcelExerciseService:
                 detail="La hoja de solucion esta vacia. Debe contener los resultados esperados.",
             )
 
+        criteria_mapping = {}
+        if "Criterios" in wb.sheetnames:
+            criterios_ws = wb["Criterios"]
+            from openpyxl.utils.cell import range_boundaries, get_column_letter
+            for row_idx, row in enumerate(criterios_ws.iter_rows(values_only=True)):
+                if row_idx == 0:
+                    continue  # Skip header
+                name = str(row[0]).strip() if row[0] else ""
+                ranges_str = str(row[1]).strip() if len(row) > 1 and row[1] else ""
+                if name and ranges_str:
+                    cell_coords = []
+                    for part in ranges_str.split(","):
+                        part = part.strip()
+                        if not part:
+                            continue
+                        try:
+                            min_col, min_row, max_col, max_row = range_boundaries(part)
+                            for r in range(min_row, max_row + 1):
+                                for c in range(min_col, max_col + 1):
+                                    cell_coords.append(f"{get_column_letter(c)}{r}")
+                        except Exception:
+                            pass
+                    if cell_coords:
+                        criteria_mapping[name] = cell_coords
+
+        if criteria_mapping:
+            target_cells["__criteria__"] = criteria_mapping
+
         return target_cells
 
     def _store_workbook_bytes(self, filename: str, workbook_bytes: bytes) -> Path:
@@ -300,7 +329,7 @@ class ExcelExerciseService:
         workbook_bytes: bytes,
         task_sheet_name: str,
         expected_summary: dict[str, object],
-    ) -> tuple[int, int, list[str]]:
+    ) -> tuple[int, int, list[str], dict[str, object]]:
         try:
             wb = load_workbook(filename=BytesIO(workbook_bytes), data_only=True)
         except Exception as error:
@@ -317,6 +346,7 @@ class ExcelExerciseService:
             
         ws = wb[task_sheet_name]
         errors = []
+        criteria_mapping = expected_summary.pop("__criteria__", {}) if "__criteria__" in expected_summary else {}
         total_cells = len(expected_summary)
         
         import datetime
@@ -334,10 +364,28 @@ class ExcelExerciseService:
                     errors.append(coord)
                     
         correct_cells = total_cells - len(errors)
-        return total_cells, correct_cells, errors
+        
+        criteria_results = {}
+        for criteria_name, coords in criteria_mapping.items():
+            total_c = 0
+            correct_c = 0
+            for coord in coords:
+                if coord in expected_summary:
+                    total_c += 1
+                    if coord not in errors:
+                        correct_c += 1
+            if total_c > 0:
+                criteria_results[criteria_name] = {
+                    "total": total_c,
+                    "correct": correct_c,
+                    "success_rate": correct_c / total_c
+                }
+                
+        return total_cells, correct_cells, errors, criteria_results
 
     def _build_read(self, exercise: ExcelExercise) -> ExcelExerciseRead:
         target_cells = json.loads(exercise.expected_summary_json)
+        target_cells.pop("__criteria__", None)
         return ExcelExerciseRead(
             id=exercise.id,
             name=exercise.name,

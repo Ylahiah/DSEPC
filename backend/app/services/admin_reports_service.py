@@ -466,7 +466,7 @@ class AdminReportsService:
                             .replace(">", "&gt;"),
                             styles["Normal"],
                         ),
-                        self._get_question_result_label(session_question),
+                        self._get_question_result_label(session_question, styles),
                         self._format_duration(session_question.time_spent_seconds),
                     ]
                 )
@@ -483,12 +483,23 @@ class AdminReportsService:
         )
         return output, filename
 
-    def _get_question_result_label(self, session_question) -> str:
+    def _get_question_result_label(self, session_question, styles) -> object:
         if session_question.question.question_type == "excel_practical" and session_question.practical_feedback:
             import json
             try:
                 fb = json.loads(session_question.practical_feedback)
-                return f"{fb.get('correct_cells', 0)}/{fb.get('total_cells', 0)} aciertos"
+                lines = [f"<b>{fb.get('correct_cells', 0)}/{fb.get('total_cells', 0)} aciertos</b>"]
+                
+                criteria_results = fb.get("criteria_results", {})
+                if criteria_results:
+                    for c_name, c_data in criteria_results.items():
+                        c_correct = c_data.get("correct", 0)
+                        c_total = c_data.get("total", 0)
+                        pct = int(c_data.get("success_rate", 0) * 100)
+                        lines.append(f"• {c_name}: {c_correct}/{c_total} ({pct}%)")
+                        
+                from reportlab.platypus import Paragraph
+                return Paragraph("<br/>".join(lines), styles["Normal"])
             except Exception:
                 pass
         
