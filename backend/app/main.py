@@ -8,7 +8,7 @@ from sqlalchemy import inspect, text
 from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.core.security import get_password_hash
-from app.db.base import CandidateAccessCode, EvaluationTemplate, User
+from app.db.base import CandidateAccessCode, EvaluationTemplate, SystemSetting, User
 from app.db.session import SessionLocal, engine
 from app.models.base import Base
 
@@ -121,6 +121,10 @@ def seed_initial_data() -> None:
             if default_template and access_code.evaluation_template_id is None:
                 access_code.evaluation_template_id = default_template.id
             access_code.is_active = True
+
+        system_setting = db.query(SystemSetting).first()
+        if not system_setting:
+            db.add(SystemSetting())
 
         db.commit()
     finally:

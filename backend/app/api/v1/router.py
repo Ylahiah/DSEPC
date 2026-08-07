@@ -12,6 +12,7 @@ from app.api.v1.endpoints import (
     health,
     questions,
     reports,
+    settings,
     subcategories,
 )
 
@@ -22,6 +23,7 @@ api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(access_codes.router, prefix="/access-codes", tags=["access-codes"])
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 api_router.include_router(reports.router, prefix="/reports", tags=["reports"])
+api_router.include_router(settings.router, prefix="/settings", tags=["settings"])
 api_router.include_router(
     excel_exercises.router,
     prefix="/excel-exercises",

@@ -10,6 +10,7 @@ from app.models.evaluation_template_section import EvaluationTemplateSection
 from app.models.question import Question
 from app.models.question_option import QuestionOption
 from app.models.subcategory import Subcategory
+from app.models.system_setting import SystemSetting
 from app.models.user import User
 
 __all__ = [
@@ -19,6 +20,7 @@ __all__ = [
     "Category",
     "ExcelExercise",
     "Subcategory",
+    "SystemSetting",
     "Question",
     "QuestionOption",
     "EvaluationSession",
