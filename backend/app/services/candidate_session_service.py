@@ -361,25 +361,29 @@ class CandidateSessionService:
         return access_code
 
     def _get_or_create_candidate(self, payload: CandidateSessionStartRequest) -> Candidate:
+        first_name = payload.first_name.strip()
+        last_name = payload.last_name.strip()
+        email = payload.email.strip() if payload.email else None
+
         candidate = self.candidate_repository.find_existing(
-            first_name=payload.first_name,
-            last_name=payload.last_name,
-            email=payload.email,
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
         )
         if candidate:
-            candidate.phone = payload.phone
-            candidate.employee_reference = payload.employee_reference
+            candidate.phone = payload.phone.strip() if payload.phone else None
+            candidate.employee_reference = payload.employee_reference.strip() if payload.employee_reference else None
             self.db.commit()
             self.db.refresh(candidate)
             return candidate
 
         return self.candidate_repository.add(
             Candidate(
-                first_name=payload.first_name,
-                last_name=payload.last_name,
-                email=payload.email,
-                phone=payload.phone,
-                employee_reference=payload.employee_reference,
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                phone=payload.phone.strip() if payload.phone else None,
+                employee_reference=payload.employee_reference.strip() if payload.employee_reference else None,
             )
         )
 

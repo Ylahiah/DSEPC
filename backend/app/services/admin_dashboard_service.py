@@ -186,14 +186,19 @@ class AdminDashboardService:
         self,
         sessions: list[EvaluationSession],
     ) -> list[DashboardRankingItemRead]:
-        candidate_metrics: dict[int, dict[str, object]] = {}
+        candidate_metrics: dict[str, dict[str, object]] = {}
 
         for session in sessions:
             candidate_name = self._build_candidate_name(session)
+            
+            # Group by email if present, otherwise by lowercased name to merge duplicates
+            grouping_key = session.candidate.email.strip().lower() if session.candidate.email else candidate_name.strip().lower()
+            
             submitted_at = self._normalize_datetime(session.submitted_at) if session.submitted_at else None
             metrics = candidate_metrics.setdefault(
-                session.candidate_id,
+                grouping_key,
                 {
+                    "candidate_id": session.candidate_id,
                     "candidate_name": candidate_name,
                     "email": session.candidate.email,
                     "attempts_count": 0,
@@ -227,7 +232,7 @@ class AdminDashboardService:
 
         ranking = [
             DashboardRankingItemRead(
-                candidate_id=candidate_id,
+                candidate_id=int(metrics["candidate_id"]),
                 candidate_name=str(metrics["candidate_name"]),
                 email=metrics["email"],
                 attempts_count=int(metrics["attempts_count"]),
