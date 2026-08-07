@@ -24,6 +24,9 @@ def apply_schema_upgrades() -> None:
         "candidate_access_codes": {
             "evaluation_template_id": "INTEGER",
         },
+        "evaluation_templates": {
+            "passing_score_percentage": "FLOAT NOT NULL DEFAULT 80.0",
+        },
         "evaluation_sessions": {
             "total_time_seconds": "INTEGER DEFAULT 0",
             "consumed_time_seconds": "INTEGER DEFAULT 0",

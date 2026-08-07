@@ -13,6 +13,7 @@ class EvaluationTemplate(Base):
     name: Mapped[str] = mapped_column(String(150), unique=True, index=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
+    passing_score_percentage: Mapped[float] = mapped_column(default=80.0)
     show_result_to_candidate: Mapped[bool] = mapped_column(Boolean, default=False)
     randomize_question_order: Mapped[bool] = mapped_column(Boolean, default=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=False)

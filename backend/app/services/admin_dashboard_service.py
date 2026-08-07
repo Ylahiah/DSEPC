@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from io import BytesIO
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -28,6 +29,57 @@ class AdminDashboardService:
             session for session in sessions if session.status in self.FINISHED_STATUSES
         ]
         return self._build_ranking(finished_sessions)
+
+    def build_candidates_excel(self) -> tuple[BytesIO, str]:
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill
+
+        ranking = self.get_all_candidates_ranking()
+
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+        assert sheet is not None
+        sheet.title = "Padron de Candidatos"
+
+        headers = [
+            "Candidato",
+            "Correo Electronico",
+            "Estatus",
+            "Mejor Puntaje (%)",
+            "Promedio General (%)",
+            "Tiempo Promedio (segundos)",
+            "Intentos",
+            "Ultima Plantilla",
+        ]
+        sheet.append(headers)
+
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
+        for cell in sheet[1]:
+            cell.font = header_font
+            cell.fill = header_fill
+
+        for item in ranking:
+            status_text = "Apto" if item.is_apto else "No Apto"
+            sheet.append(
+                [
+                    item.candidate_name,
+                    item.email or "N/A",
+                    status_text,
+                    item.best_score_percentage,
+                    item.average_score_percentage,
+                    item.average_time_seconds,
+                    item.attempts_count,
+                    item.last_template_name or "N/A",
+                ]
+            )
+
+        file_buffer = BytesIO()
+        workbook.save(file_buffer)
+        file_buffer.seek(0)
+        filename = f"padron_candidatos_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.xlsx"
+
+        return file_buffer, filename
 
     def get_dashboard_summary(self) -> AdminDashboardRead:
         sessions = self.repository.list_all_for_dashboard()
@@ -208,10 +260,14 @@ class AdminDashboardService:
                     "last_template_name": None,
                     "last_status": None,
                     "last_submitted_at": None,
+                    "is_apto": False,
                 },
             )
 
             score_percentage = self._calculate_session_score_percentage(session)
+            if score_percentage >= session.evaluation_template.passing_score_percentage:
+                metrics["is_apto"] = True
+                
             metrics["attempts_count"] = int(metrics["attempts_count"]) + 1
             metrics["score_percentage_sum"] = float(metrics["score_percentage_sum"]) + score_percentage
             metrics["best_score_percentage"] = max(
@@ -254,8 +310,9 @@ class AdminDashboardService:
                     str(metrics["last_status"]) if metrics["last_status"] is not None else None
                 ),
                 last_submitted_at=metrics["last_submitted_at"],
+                is_apto=bool(metrics["is_apto"]),
             )
-            for candidate_id, metrics in candidate_metrics.items()
+            for metrics in candidate_metrics.values()
         ]
 
         return sorted(

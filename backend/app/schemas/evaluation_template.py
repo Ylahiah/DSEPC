@@ -39,6 +39,7 @@ class EvaluationTemplateBase(BaseModel):
     name: str = Field(min_length=3, max_length=150)
     description: str | None = None
     instructions: str | None = None
+    passing_score_percentage: float = Field(default=80.0, ge=0.0, le=100.0)
     show_result_to_candidate: bool = False
     randomize_question_order: bool = True
     sections: list[EvaluationTemplateSectionCreate]
@@ -91,6 +92,7 @@ class EvaluationTemplateListItem(BaseModel):
     name: str
     description: str | None
     is_active: bool
+    passing_score_percentage: float
     show_result_to_candidate: bool
     randomize_question_order: bool
     created_at: datetime
@@ -109,6 +111,7 @@ class EvaluationTemplateRead(BaseModel):
     description: str | None
     instructions: str | None
     is_active: bool
+    passing_score_percentage: float
     show_result_to_candidate: bool
     randomize_question_order: bool
     created_at: datetime

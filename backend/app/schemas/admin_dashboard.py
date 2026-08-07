@@ -22,6 +22,7 @@ class DashboardRankingItemRead(BaseModel):
     last_template_name: str | None
     last_status: str | None
     last_submitted_at: datetime | None
+    is_apto: bool
 
 
 class DashboardRecentSessionRead(BaseModel):
