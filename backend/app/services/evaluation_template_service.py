@@ -50,6 +50,7 @@ class EvaluationTemplateService:
             name=payload.name,
             description=payload.description,
             instructions=payload.instructions,
+            passing_score_percentage=payload.passing_score_percentage,
             show_result_to_candidate=payload.show_result_to_candidate,
             randomize_question_order=payload.randomize_question_order,
             sections=self._build_section_models(payload.sections),
@@ -76,6 +77,7 @@ class EvaluationTemplateService:
         template.name = payload.name
         template.description = payload.description
         template.instructions = payload.instructions
+        template.passing_score_percentage = payload.passing_score_percentage
         template.show_result_to_candidate = payload.show_result_to_candidate
         template.randomize_question_order = payload.randomize_question_order
         template.sections.clear()
@@ -324,6 +326,7 @@ class EvaluationTemplateService:
             name=template.name,
             description=template.description,
             is_active=template.is_active,
+            passing_score_percentage=template.passing_score_percentage,
             show_result_to_candidate=template.show_result_to_candidate,
             randomize_question_order=template.randomize_question_order,
             created_at=template.created_at,
@@ -342,6 +345,7 @@ class EvaluationTemplateService:
             description=template.description,
             instructions=template.instructions,
             is_active=template.is_active,
+            passing_score_percentage=template.passing_score_percentage,
             show_result_to_candidate=template.show_result_to_candidate,
             randomize_question_order=template.randomize_question_order,
             created_at=template.created_at,
