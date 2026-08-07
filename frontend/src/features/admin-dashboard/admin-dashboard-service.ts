@@ -68,3 +68,8 @@ export async function cleanupAdminDashboardTestData() {
   )
   return response.data
 }
+
+export async function getAdminCandidates() {
+  const response = await apiClient.get<DashboardRankingItem[]>('/dashboard/candidates')
+  return response.data
+}
