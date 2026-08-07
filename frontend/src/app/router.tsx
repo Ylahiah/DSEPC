@@ -1,4 +1,3 @@
-import { Users } from 'lucide-react'
 import { createBrowserRouter } from 'react-router-dom'
 
 import { AppShell } from '@/components/app-shell'
