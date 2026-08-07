@@ -231,9 +231,7 @@ export function AdminLoginPage() {
                     <ArrowRight className="size-4" />
                   </Button>
 
-                  <p className="text-center text-xs text-slate-500">
-                    Credenciales iniciales de desarrollo: <strong>admin / Admin12345</strong>
-                  </p>
+
                 </form>
               )}
             </CardContent>

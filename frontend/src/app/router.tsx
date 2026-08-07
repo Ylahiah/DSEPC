@@ -16,7 +16,7 @@ import { ReportsPage } from '@/pages/reports-page'
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <AdminLoginPage />,
+    element: <CandidateAccessPage />,
   },
   {
     path: '/candidato',
