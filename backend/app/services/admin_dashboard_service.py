@@ -22,6 +22,13 @@ class AdminDashboardService:
     def __init__(self, db: Session) -> None:
         self.repository = EvaluationSessionRepository(db)
 
+    def get_all_candidates_ranking(self) -> list[DashboardRankingItemRead]:
+        sessions = self.repository.list_all_for_dashboard()
+        finished_sessions = [
+            session for session in sessions if session.status in self.FINISHED_STATUSES
+        ]
+        return self._build_ranking(finished_sessions)
+
     def get_dashboard_summary(self) -> AdminDashboardRead:
         sessions = self.repository.list_all_for_dashboard()
         finished_sessions = [

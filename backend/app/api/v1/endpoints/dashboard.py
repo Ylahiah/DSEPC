@@ -5,7 +5,11 @@ from sqlalchemy.orm import Session
 
 from app.core.security import get_current_admin
 from app.db.session import get_db
-from app.schemas.admin_dashboard import AdminDashboardCleanupRead, AdminDashboardRead
+from app.schemas.admin_dashboard import (
+    AdminDashboardCleanupRead,
+    AdminDashboardRead,
+    DashboardRankingItemRead,
+)
 from app.services.admin_dashboard_service import AdminDashboardService
 
 
@@ -18,6 +22,14 @@ def get_admin_dashboard_summary(
     db: Annotated[Session, Depends(get_db)],
 ) -> AdminDashboardRead:
     return AdminDashboardService(db).get_dashboard_summary()
+
+
+@router.get("/candidates", response_model=list[DashboardRankingItemRead])
+def get_all_candidates_ranking(
+    _: Annotated[object, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+) -> list[DashboardRankingItemRead]:
+    return AdminDashboardService(db).get_all_candidates_ranking()
 
 
 @router.post("/cleanup-test-data", response_model=AdminDashboardCleanupRead)
