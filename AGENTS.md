@@ -19,6 +19,7 @@ DSEPC/
 │   ├── .env                     # Variables de entorno (opcional)
 │   ├── dsepc.db                 # Base de datos SQLite (se crea al arrancar)
 │   ├── storage/
+│   │   ├── assets/              # Archivos de sistema (ej. logotipo de marca blanca)
 │   │   ├── excel_exercises/     # Libros de ejercicios practicos cargados
 │   │   └── excel_submissions/   # Archivos entregados por candidatos
 │   └── app/
@@ -104,7 +105,8 @@ DSEPC/
   resumen en la hoja de tareas.
 - **Plantillas de evaluacion**: secciones (categoria, subcategoria opcional,
   dificultad, cantidad de preguntas, tiempo limite, peso) con preview de validez;
-  una plantilla solo puede activarse si tiene suficientes preguntas.
+  una plantilla solo puede activarse si tiene suficientes preguntas. Incluyen un
+  `passing_score_percentage` (umbral de aprobacion personalizable).
 - **Codigos de acceso**: vinculados a una plantilla, con expiracion opcional.
 - **Sesiones de candidato**: se generan a partir de la plantilla (seleccion
   aleatoria), registran tiempo por pregunta/seccion y tienen estados
@@ -112,7 +114,13 @@ DSEPC/
   timeout). El flujo usa `heartbeat`/`answers` para consolidar tiempo y
   omisiones, y expone metricas por categoria.
 - **Dashboard y reportes**: resumen general, promedio por categoria, ranking y
-  reportes por sesion. Exportables a Excel (openpyxl) y PDF (reportlab).
+  reportes por sesion. El ranking de candidatos evalua si son "Aptos" segun el
+  umbral de aprobacion de la plantilla. Exportables a Excel (openpyxl) y PDF
+  (reportlab). Tambien cuenta con exportacion a Excel del padron completo de candidatos.
+- **Configuracion del Sistema (Marca Blanca)**: permite personalizar el nombre de
+  la empresa, logotipo (almacenado en `storage/assets/`), mensaje de bienvenida y
+  color primario de la UI. Los candidatos ven la interfaz adaptada a la marca, y el
+  admin lo configura en `/admin/configuracion`.
 
 ## Convenciones
 
