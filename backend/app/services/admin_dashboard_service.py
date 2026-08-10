@@ -1,10 +1,9 @@
 from datetime import datetime, timezone
 from io import BytesIO
 
-from sqlalchemy import select
+# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
 
-from app.models.candidate import Candidate
 from app.models.evaluation_session import EvaluationSession
 from app.schemas.admin_dashboard import (
     AdminDashboardCleanupRead,

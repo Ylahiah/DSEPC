@@ -14,6 +14,7 @@ export interface EvaluationTemplatePayload {
   name: string
   description: string | null
   instructions: string | null
+  passing_score_percentage: number
   show_result_to_candidate: boolean
   randomize_question_order: boolean
   sections: EvaluationTemplateSectionPayload[]
@@ -24,6 +25,7 @@ export interface EvaluationTemplateListItem {
   name: string
   description: string | null
   is_active: boolean
+  passing_score_percentage: number
   show_result_to_candidate: boolean
   randomize_question_order: boolean
   created_at: string
@@ -53,6 +55,7 @@ export interface EvaluationTemplateDetail {
   description: string | null
   instructions: string | null
   is_active: boolean
+  passing_score_percentage: number
   show_result_to_candidate: boolean
   randomize_question_order: boolean
   created_at: string

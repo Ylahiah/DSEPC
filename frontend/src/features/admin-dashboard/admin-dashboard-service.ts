@@ -19,6 +19,7 @@ export interface DashboardRankingItem {
   last_template_name: string | null
   last_status: string | null
   last_submitted_at: string | null
+  is_apto: boolean
 }
 
 export interface DashboardRecentSession {
@@ -72,4 +73,32 @@ export async function cleanupAdminDashboardTestData() {
 export async function getAdminCandidates() {
   const response = await apiClient.get<DashboardRankingItem[]>('/dashboard/candidates')
   return response.data
+}
+
+export async function downloadAdminCandidatesExcel() {
+  const response = await apiClient.get('/dashboard/candidates/excel', {
+    responseType: 'blob',
+  })
+
+  let filename = 'padron_candidatos.xlsx'
+  const disposition = response.headers['content-disposition']
+  if (disposition && typeof disposition === 'string') {
+    const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
+    const matches = filenameRegex.exec(disposition)
+    if (matches != null && matches[1]) {
+      filename = matches[1].replace(/['"]/g, '')
+    }
+  }
+
+  const blob = new Blob([response.data], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  })
+  const downloadUrl = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = downloadUrl
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  window.URL.revokeObjectURL(downloadUrl)
 }

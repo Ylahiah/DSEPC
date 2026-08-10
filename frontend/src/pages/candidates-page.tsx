@@ -1,10 +1,11 @@
-import { CheckCircle2, Search, Users, XCircle } from 'lucide-react'
+import { CheckCircle2, Download, Search, Users, XCircle } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import {
   getAdminCandidates,
+  downloadAdminCandidatesExcel,
   type DashboardRankingItem,
 } from '@/features/admin-dashboard/admin-dashboard-service'
 
@@ -22,6 +23,7 @@ function formatDuration(seconds: number) {
 export function CandidatesPage() {
   const [candidates, setCandidates] = useState<DashboardRankingItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isDownloading, setIsDownloading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
@@ -49,11 +51,23 @@ export function CandidatesPage() {
     let passed = 0
     let failed = 0
     for (const c of candidates) {
-      if (c.best_score_percentage >= 80) passed++
+      if (c.is_apto) passed++
       else failed++
     }
     return { passedCount: passed, failedCount: failed }
   }, [candidates])
+
+  const handleDownloadExcel = async () => {
+    try {
+      setIsDownloading(true)
+      await downloadAdminCandidatesExcel()
+    } catch (error) {
+      console.error(error)
+      alert('Error al descargar el archivo Excel.')
+    } finally {
+      setIsDownloading(false)
+    }
+  }
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-8 pb-10">
@@ -64,6 +78,14 @@ export function CandidatesPage() {
             Consulta el historial, mejores puntajes y estatus de todos los candidatos evaluados.
           </p>
         </div>
+        <button
+          onClick={handleDownloadExcel}
+          disabled={isDownloading || candidates.length === 0}
+          className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-700 disabled:pointer-events-none disabled:opacity-50"
+        >
+          <Download className="size-4" />
+          {isDownloading ? 'Generando...' : 'Exportar a Excel'}
+        </button>
       </header>
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -134,7 +156,7 @@ export function CandidatesPage() {
                 </tr>
               ) : (
                 filteredCandidates.map((candidate) => {
-                  const isApto = candidate.best_score_percentage >= 80
+                  const isApto = candidate.is_apto
 
                   return (
                     <tr

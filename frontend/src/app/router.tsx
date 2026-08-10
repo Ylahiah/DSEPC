@@ -11,6 +11,8 @@ import { EvaluationTemplatesPage } from '@/pages/evaluation-templates-page'
 import { NotFoundPage } from '@/pages/not-found-page'
 import { QuestionBankPage } from '@/pages/question-bank-page'
 import { ReportsPage } from '@/pages/reports-page'
+import { PrintReportPage } from '@/pages/print-report-page'
+import { SettingsPage } from '@/pages/settings-page'
 
 export const router = createBrowserRouter([
   {
@@ -55,6 +57,14 @@ export const router = createBrowserRouter([
           {
             path: 'reportes',
             element: <ReportsPage />,
+          },
+          {
+            path: 'reportes/:id/imprimir',
+            element: <PrintReportPage />,
+          },
+          {
+            path: 'configuracion',
+            element: <SettingsPage />,
           },
         ],
       },

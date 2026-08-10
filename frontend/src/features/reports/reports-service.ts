@@ -24,8 +24,47 @@ export interface ReportsSummary {
   sessions: ReportSessionItem[]
 }
 
+export interface ReportCategoryMetric {
+  category_name: string
+  total_questions: number
+  answered_questions: number
+  omitted_questions: number
+  correct_questions: number
+  incorrect_questions: number
+  score_percentage: number
+}
+
+export interface ReportQuestionResult {
+  sort_order: number
+  category_name: string
+  statement: string
+  selected_answer: string | null
+  correct_answer: string | null
+  result_label: string
+  time_spent_seconds: number
+}
+
+export interface ReportSessionDetail {
+  session_id: number
+  candidate_name: string
+  template_name: string
+  status: string
+  score_percentage: number
+  precision_percentage: number
+  consumed_time_seconds: number
+  started_at: string
+  submitted_at: string | null
+  categories: ReportCategoryMetric[]
+  questions: ReportQuestionResult[]
+}
+
 export async function getReportsSummary() {
   const response = await apiClient.get<ReportsSummary>('/reports/summary')
+  return response.data
+}
+
+export async function getReportSessionDetail(sessionId: number) {
+  const response = await apiClient.get<ReportSessionDetail>(`/reports/sessions/${sessionId}/detail`)
   return response.data
 }
 

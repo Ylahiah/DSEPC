@@ -13,7 +13,13 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 from sqlalchemy.orm import Session
 
 from app.models.evaluation_session import EvaluationSession
-from app.schemas.admin_reports import AdminReportsSummaryRead, ReportSessionItemRead
+from app.schemas.admin_reports import (
+    AdminReportsSummaryRead,
+    ReportSessionItemRead,
+    ReportSessionDetailRead,
+    ReportCategoryMetricRead,
+    ReportQuestionResultRead,
+)
 from app.services.admin_dashboard_service import AdminDashboardService
 from app.repositories.evaluation_session_repository import EvaluationSessionRepository
 
@@ -635,6 +641,67 @@ class AdminReportsService:
             return 0.0
 
         return round((score_obtained / score_possible) * 100, 2)
+
+    def get_session_detail(self, session_id: int) -> ReportSessionDetailRead:
+        session = self._get_session_or_404(session_id)
+        
+        category_rows = self._build_session_category_rows(session)
+        categories = []
+        for row in category_rows:
+            categories.append(ReportCategoryMetricRead(
+                category_name=row[0],
+                total_questions=row[1],
+                answered_questions=row[2],
+                omitted_questions=row[3],
+                correct_questions=row[4],
+                incorrect_questions=row[5],
+                score_percentage=float(f"{(row[6] / row[7] * 100):.2f}") if row[7] > 0 else 0.0
+            ))
+
+        questions = []
+        for section in session.sections:
+            for session_question in section.questions:
+                questions.append(ReportQuestionResultRead(
+                    sort_order=section.sort_order,
+                    category_name=session_question.question.category.name,
+                    statement=session_question.question.statement or "",
+                    selected_answer=session_question.selected_answer,
+                    correct_answer=session_question.question.correct_answer,
+                    result_label=self._get_question_result_label_str(session_question),
+                    time_spent_seconds=session_question.time_spent_seconds,
+                ))
+
+        total_correct = sum(1 for q in questions if "Correcta" in q.result_label or "acierto" in q.result_label)
+        precision_percentage = round((total_correct / len(questions) * 100), 2) if questions else 0.0
+
+        return ReportSessionDetailRead(
+            session_id=session.id,
+            candidate_name=self._build_candidate_name(session),
+            template_name=session.evaluation_template.name,
+            status=session.status,
+            score_percentage=self._calculate_session_score_percentage(session),
+            precision_percentage=precision_percentage,
+            consumed_time_seconds=session.consumed_time_seconds,
+            started_at=self._normalize_datetime(session.started_at),
+            submitted_at=self._normalize_datetime(session.submitted_at) if session.submitted_at else None,
+            categories=categories,
+            questions=questions
+        )
+
+    def _get_question_result_label_str(self, session_question) -> str:
+        if session_question.question.question_type == "excel_practical" and session_question.practical_feedback:
+            import json
+            try:
+                fb = json.loads(session_question.practical_feedback)
+                return f"{fb.get('correct_cells', 0)}/{fb.get('total_cells', 0)} aciertos"
+            except Exception:
+                pass
+        
+        if session_question.is_correct:
+            return "Correcta"
+        if session_question.is_correct is False:
+            return "Incorrecta"
+        return "Omitida"
 
     def _build_session_category_rows(self, session: EvaluationSession) -> list[list[object]]:
         category_metrics: dict[str, dict[str, float | int]] = {}

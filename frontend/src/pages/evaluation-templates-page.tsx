@@ -60,6 +60,7 @@ type TemplateFormState = {
   name: string
   description: string
   instructions: string
+  passing_score_percentage: string
   show_result_to_candidate: boolean
   randomize_question_order: boolean
   sections: TemplateSectionForm[]
@@ -79,6 +80,7 @@ const defaultFormState: TemplateFormState = {
   name: '',
   description: '',
   instructions: '',
+  passing_score_percentage: '80',
   show_result_to_candidate: false,
   randomize_question_order: true,
   sections: [defaultSection(1)],
@@ -205,6 +207,7 @@ export function EvaluationTemplatesPage() {
       name: templateForm.name.trim(),
       description: templateForm.description.trim() || null,
       instructions: templateForm.instructions.trim() || null,
+      passing_score_percentage: Number(templateForm.passing_score_percentage) || 80,
       show_result_to_candidate: templateForm.show_result_to_candidate,
       randomize_question_order: templateForm.randomize_question_order,
       sections: templateForm.sections.map((section, index) => ({
@@ -265,6 +268,7 @@ export function EvaluationTemplatesPage() {
       name: template.name,
       description: template.description ?? '',
       instructions: template.instructions ?? '',
+      passing_score_percentage: String(template.passing_score_percentage),
       show_result_to_candidate: template.show_result_to_candidate,
       randomize_question_order: template.randomize_question_order,
       sections: template.sections.map((section, index) => ({
@@ -436,6 +440,24 @@ export function EvaluationTemplatesPage() {
                       setTemplateForm((current) => ({
                         ...current,
                         instructions: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="template-passing-score">Puntaje minimo aprobatorio (%)</Label>
+                  <Input
+                    id="template-passing-score"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    placeholder="Ejemplo: 80"
+                    value={templateForm.passing_score_percentage}
+                    onChange={(event) =>
+                      setTemplateForm((current) => ({
+                        ...current,
+                        passing_score_percentage: event.target.value,
                       }))
                     }
                   />

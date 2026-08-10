@@ -5,6 +5,7 @@ import {
   KeyRound,
   LayoutDashboard,
   LogOut,
+  Settings,
   ShieldCheck,
   Users,
 } from 'lucide-react'
@@ -21,6 +22,7 @@ const navItems = [
   { to: '/admin/codigos', label: 'Codigos', icon: KeyRound },
   { to: '/admin/candidatos', label: 'Candidatos', icon: Users },
   { to: '/admin/reportes', label: 'Reportes', icon: BarChart3 },
+  { to: '/admin/configuracion', label: 'Configuracion', icon: Settings },
 ]
 
 export function AppShell() {

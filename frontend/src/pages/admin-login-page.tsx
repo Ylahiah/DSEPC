@@ -47,8 +47,8 @@ export function AdminLoginPage() {
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: 'admin',
-      password: 'Admin12345',
+      username: '',
+      password: '',
     },
   })
 

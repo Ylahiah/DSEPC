@@ -151,6 +151,11 @@ export function ReportsPage() {
   }
 
   async function handleDownloadSession(sessionId: number, format: 'pdf' | 'xlsx') {
+    if (format === 'pdf') {
+      window.open(`/admin/reportes/${sessionId}/imprimir`, '_blank')
+      return
+    }
+
     setIsDownloading(true)
     setErrorMessage('')
     setFeedbackMessage('')

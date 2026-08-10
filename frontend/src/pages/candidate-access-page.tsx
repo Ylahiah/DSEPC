@@ -38,6 +38,7 @@ import {
   type CandidateSessionCompletion,
   type CandidateSessionProgress,
 } from '@/features/candidate-access/candidate-access-service'
+import { getLogoUrl, getSystemSettings, type SystemSetting } from '@/features/settings/settings-service'
 import { InteractiveExcelQuestion } from '@/features/candidate-access/components/interactive-excel-question'
 
 const CANDIDATE_SESSION_STORAGE_KEY = 'dsepc.candidate.sessionId'
@@ -102,9 +103,26 @@ export function CandidateAccessPage() {
   const [isBusy, setIsBusy] = useState(false)
   const [timeRemainingLabel, setTimeRemainingLabel] = useState('')
   const [isSyncingNavigation, setIsSyncingNavigation] = useState(false)
+  const [systemSettings, setSystemSettings] = useState<SystemSetting | null>(null)
 
   const questionStartedAtRef = useRef<number>(Date.now())
   const expiryRefreshRequestedRef = useRef(false)
+
+  useEffect(() => {
+    void loadSettings()
+  }, [])
+
+  async function loadSettings() {
+    try {
+      const settings = await getSystemSettings()
+      setSystemSettings(settings)
+      if (settings.primary_color) {
+        document.documentElement.style.setProperty('--primary', settings.primary_color)
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error)
+    }
+  }
 
   useEffect(() => {
     if (step === 'access') {
@@ -480,6 +498,13 @@ export function CandidateAccessPage() {
       return
     }
 
+    const isConfirmed = window.confirm(
+      "¿Estas seguro de que deseas finalizar la evaluacion? Una vez finalizada, no podras cambiar tus respuestas."
+    )
+    if (!isConfirmed) {
+      return
+    }
+
     setIsBusy(true)
     setErrorMessage('')
     setServerMessage('')
@@ -544,28 +569,21 @@ export function CandidateAccessPage() {
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,_#f8fafc_0%,_#eff6ff_45%,_#eef2ff_100%)] px-4 py-10">
       <div className="mx-auto max-w-7xl space-y-6">
-        <section className="rounded-[1.75rem] border border-white/60 bg-[linear-gradient(135deg,_rgba(15,23,42,0.97),_rgba(30,41,59,0.94))] p-8 text-white shadow-xl">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-3">
-              <p className="text-sm uppercase tracking-[0.28em] text-slate-300">
-                Portal del candidato
-              </p>
-              <h1 className="text-3xl font-semibold tracking-tight md:text-5xl">
-                Evaluacion operativa para capturistas
-              </h1>
-              <p className="max-w-3xl text-slate-300">
-                Ahora el sistema registra tiempo real, omisiones y resultados base
-                por categoria.
-              </p>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-3">
-              <HeroPill title="Paso 1" description="Validar codigo" />
-              <HeroPill title="Paso 2" description="Capturar datos" />
-              <HeroPill title="Paso 3" description="Resolver examen" />
-            </div>
+        <div className="flex h-16 w-full items-center justify-between">
+          <div className="flex items-center gap-3">
+            {systemSettings?.logo_filename ? (
+              <img src={`${getLogoUrl()}?t=${Date.now()}`} alt="Logo" className="h-8 object-contain" />
+            ) : (
+              <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
+                <CheckCircle2 className="size-5" />
+              </div>
+            )}
+            <h1 className="text-xl font-bold tracking-tight text-foreground">
+              {systemSettings?.company_name || 'DSEPC'}
+            </h1>
           </div>
-        </section>
+          <div className="text-sm font-medium text-muted-foreground">Portal de Evaluacion</div>
+        </div>
 
         {serverMessage ? (
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
@@ -580,12 +598,14 @@ export function CandidateAccessPage() {
         ) : null}
 
         {step === 'access' ? (
-          <div className="grid gap-8 lg:grid-cols-[0.92fr_1.08fr]">
-            <Card className="border-white/70 bg-white/85 backdrop-blur">
-              <CardHeader>
-                <CardTitle>Ingreso del candidato</CardTitle>
-                <CardDescription>
-                  Valida tu codigo de evaluacion para continuar con el proceso.
+          <div className="mx-auto mt-12 grid w-full max-w-4xl gap-8 lg:grid-cols-2">
+            <Card className="border-white/70 bg-white/85 shadow-2xl backdrop-blur">
+              <CardHeader className="space-y-3 pb-8">
+                <CardTitle className="text-2xl font-bold tracking-tight">
+                  Bienvenido candidato
+                </CardTitle>
+                <CardDescription className="text-base">
+                  {systemSettings?.welcome_message || 'Ingresa tu codigo de evaluacion proporcionado por el reclutador para comenzar.'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-5">
@@ -622,20 +642,20 @@ export function CandidateAccessPage() {
             <div className="grid gap-4 md:grid-cols-2">
               {[
                 [
-                  'Cronometro oficial',
-                  'El backend consolida el tiempo consumido para que la evaluacion sea auditable.',
+                  'Lee con atencion',
+                  'Cada pregunta esta disenada cuidadosamente. Tomate el tiempo necesario para leer y comprender antes de responder.',
                 ],
                 [
-                  'Omisiones detectadas',
-                  'Al cambiar de pregunta sin responder, el sistema puede registrar la omision.',
+                  'Gestion de tiempo',
+                  'Monitorea el reloj superior. Si el tiempo de la seccion se agota, esta se cerrara y avanzaras a la siguiente.',
                 ],
                 [
-                  'Resultados por categoria',
-                  'La sesion ya calcula aciertos, errores y puntaje por cada categoria respondida.',
+                  'No puedes regresar',
+                  'Avanza con seguridad. Una vez que pases a la siguiente pregunta o seccion, no podras volver atras.',
                 ],
                 [
-                  'Cierre por tiempo',
-                  'Si el reloj se agota, la sesion se cierra automaticamente con lo ya contestado.',
+                  'Integridad de la prueba',
+                  'Manten el enfoque en la evaluacion. Se recomienda no cambiar de pestanas ni salir de la ventana activa.',
                 ],
               ].map(([title, description]) => (
                 <Card key={title} className="border-white/70 bg-white/70 backdrop-blur">

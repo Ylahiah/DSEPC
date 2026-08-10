@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import get_current_admin
 from app.db.session import get_db
-from app.schemas.admin_reports import AdminReportsSummaryRead
+from app.schemas.admin_reports import AdminReportsSummaryRead, ReportSessionDetailRead
 from app.services.admin_reports_service import AdminReportsService
 
 
@@ -19,6 +19,15 @@ def get_admin_reports_summary(
     db: Annotated[Session, Depends(get_db)],
 ) -> AdminReportsSummaryRead:
     return AdminReportsService(db).get_reports_summary()
+
+
+@router.get("/sessions/{session_id}/detail", response_model=ReportSessionDetailRead)
+def get_session_detail(
+    session_id: int,
+    _: Annotated[object, Depends(get_current_admin)],
+    db: Annotated[Session, Depends(get_db)],
+) -> ReportSessionDetailRead:
+    return AdminReportsService(db).get_session_detail(session_id)
 
 
 @router.get("/general.xlsx")
