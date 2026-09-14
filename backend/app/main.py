@@ -27,12 +27,17 @@ def apply_schema_upgrades() -> None:
         "evaluation_templates": {
             "passing_score_percentage": "FLOAT NOT NULL DEFAULT 80.0",
         },
+        "evaluation_template_sections": {
+            "question_type": "VARCHAR(30)",
+        },
         "evaluation_sessions": {
             "total_time_seconds": "INTEGER DEFAULT 0",
             "consumed_time_seconds": "INTEGER DEFAULT 0",
             "completed_by_timeout": "BOOLEAN DEFAULT 0",
             "answered_questions_count": "INTEGER DEFAULT 0",
             "omitted_questions_count": "INTEGER DEFAULT 0",
+            "assistance_level": "VARCHAR(30) DEFAULT 'none'",
+            "assistance_notes": "TEXT",
         },
         "evaluation_session_sections": {
             "started_at": "DATETIME",

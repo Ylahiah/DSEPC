@@ -16,6 +16,8 @@ class ReportSessionItemRead(BaseModel):
     started_at: datetime
     submitted_at: datetime | None
     completed_by_timeout: bool
+    assistance_level: str = "none"
+    assistance_notes: str | None = None
 
 
 class AdminReportsSummaryRead(BaseModel):
@@ -28,13 +30,18 @@ class AdminReportsSummaryRead(BaseModel):
 
 
 class ReportQuestionResultRead(BaseModel):
+    session_question_id: int | None = None
+    question_id: int | None = None
     sort_order: int
     category_name: str
+    question_type: str = "multiple_choice"
     statement: str
     selected_answer: str | None
     correct_answer: str | None
     result_label: str
     time_spent_seconds: int
+    has_practical_submission: bool = False
+    practical_submission_filename: str | None = None
 
 
 class ReportCategoryMetricRead(BaseModel):
@@ -57,5 +64,12 @@ class ReportSessionDetailRead(BaseModel):
     consumed_time_seconds: int
     started_at: datetime
     submitted_at: datetime | None
+    assistance_level: str = "none"
+    assistance_notes: str | None = None
     categories: list[ReportCategoryMetricRead]
     questions: list[ReportQuestionResultRead]
+
+
+class SessionAssistanceUpdateRequest(BaseModel):
+    assistance_level: str = "none"  # "none", "partial", "full"
+    assistance_notes: str | None = None

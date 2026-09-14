@@ -38,6 +38,6 @@ export async function updateSystemLogo(file: File | null) {
 }
 
 export function getLogoUrl(): string {
-  const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1'
+  const baseURL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
   return `${baseURL}/settings/logo`
 }

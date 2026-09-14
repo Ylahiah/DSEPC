@@ -351,18 +351,19 @@ class AdminDashboardService:
     def _calculate_session_score_percentage(self, session: EvaluationSession) -> float:
         score_obtained = 0.0
         score_possible = 0.0
+        assistance = getattr(session, "assistance_level", "none") or "none"
 
         for section in session.sections:
             for session_question in section.questions:
                 score_possible += session_question.question.score
-                if session_question.question.question_type == "excel_practical" and session_question.practical_feedback:
-                    import json
-                    try:
-                        fb = json.loads(session_question.practical_feedback)
-                        score_obtained += session_question.question.score * fb.get("success_rate", 0.0)
-                    except Exception:
+                if session_question.question.question_type == "excel_practical":
+                    if assistance == "full":
+                        pass
+                    elif assistance == "partial":
                         if session_question.is_correct:
-                            score_obtained += session_question.question.score
+                            score_obtained += session_question.question.score * 0.5
+                    elif session_question.is_correct:
+                        score_obtained += session_question.question.score
                 elif session_question.is_correct:
                     score_obtained += session_question.question.score
 

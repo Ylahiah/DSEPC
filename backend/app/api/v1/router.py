@@ -8,6 +8,7 @@ from app.api.v1.endpoints import (
     categories,
     dashboard,
     excel_exercises,
+    excel_generator,
     evaluation_templates,
     health,
     questions,
@@ -28,6 +29,11 @@ api_router.include_router(
     excel_exercises.router,
     prefix="/excel-exercises",
     tags=["excel-exercises"],
+)
+api_router.include_router(
+    excel_generator.router,
+    prefix="/excel-generator",
+    tags=["excel-generator"],
 )
 api_router.include_router(categories.router, prefix="/categories", tags=["categories"])
 api_router.include_router(

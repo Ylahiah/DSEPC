@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.repositories.system_setting_repository import SystemSettingRepository
 from app.schemas.system_setting import SystemSettingRead, SystemSettingUpdate
 
@@ -14,9 +15,10 @@ class SystemSettingService:
     def __init__(self, db: Session) -> None:
         self.db = db
         self.repository = SystemSettingRepository(db)
+        self.settings = get_settings()
         
         # Ensure the assets directory exists
-        self.assets_dir = Path("storage/assets")
+        self.assets_dir = self.settings.asset_storage_dir
         self.assets_dir.mkdir(parents=True, exist_ok=True)
 
     def get_settings(self) -> SystemSettingRead:

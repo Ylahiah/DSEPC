@@ -196,6 +196,7 @@ class EvaluationTemplateService:
                 category_id=section.category_id,
                 subcategory_id=section.subcategory_id,
                 difficulty=section.difficulty,
+                question_type=section.question_type,
                 question_count=section.question_count,
                 time_limit_seconds=section.time_limit_seconds,
                 weight_override=section.weight_override,
@@ -264,6 +265,7 @@ class EvaluationTemplateService:
                     subcategory_id=section.subcategory_id,
                     subcategory_name=subcategory.name if subcategory else None,
                     difficulty=section.difficulty,
+                    question_type=section.question_type,
                     requested_question_count=requested_question_count,
                     available_question_count=available_question_count,
                     sufficient=sufficient,
@@ -312,6 +314,8 @@ class EvaluationTemplateService:
                 continue
             if section.difficulty is not None and question.difficulty != section.difficulty:
                 continue
+            if section.question_type is not None and question.question_type != section.question_type:
+                continue
             matching_questions.append(question)
 
         return matching_questions
@@ -357,6 +361,7 @@ class EvaluationTemplateService:
                     subcategory_id=section.subcategory_id,
                     subcategory_name=section.subcategory.name if section.subcategory else None,
                     difficulty=section.difficulty,
+                    question_type=section.question_type,
                     question_count=section.question_count,
                     time_limit_seconds=section.time_limit_seconds,
                     weight_override=section.weight_override,

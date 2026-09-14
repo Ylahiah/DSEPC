@@ -4,6 +4,7 @@ export interface EvaluationTemplateSectionPayload {
   category_id: number
   subcategory_id: number | null
   difficulty: string | null
+  question_type: string | null
   question_count: number
   time_limit_seconds: number
   weight_override: number | null
@@ -43,6 +44,7 @@ export interface EvaluationTemplateSection {
   subcategory_id: number | null
   subcategory_name: string | null
   difficulty: string | null
+  question_type: string | null
   question_count: number
   time_limit_seconds: number
   weight_override: number | null
@@ -73,6 +75,7 @@ export interface TemplatePreviewSection {
   subcategory_id: number | null
   subcategory_name: string | null
   difficulty: string | null
+  question_type: string | null
   requested_question_count: number
   available_question_count: number
   sufficient: boolean

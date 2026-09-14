@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     default_candidate_access_code: str = "EVAL-2026-DEMO"
     excel_exercise_storage_dir: Path = BASE_DIR / "storage" / "excel_exercises"
     excel_submission_storage_dir: Path = BASE_DIR / "storage" / "excel_submissions"
+    asset_storage_dir: Path = BASE_DIR / "storage" / "assets"
 
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",

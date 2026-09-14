@@ -8,6 +8,7 @@ from uuid import uuid4
 from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
+import app.db.base
 from app.core.config import get_settings
 from app.models.candidate import Candidate
 from app.models.candidate_access_code import CandidateAccessCode
@@ -186,6 +187,14 @@ class CandidateSessionService:
         hydrated_session = self._get_session_or_404(session_id)
         metrics = self._calculate_metrics(hydrated_session)
 
+        total_possible = sum(cat.score_possible for cat in metrics["category_results"])
+        total_obtained = sum(cat.score_obtained for cat in metrics["category_results"])
+        score_pct = round((total_obtained / total_possible * 100), 2) if total_possible > 0 else 0.0
+        passing_pct = getattr(hydrated_session.evaluation_template, "passing_score_percentage", 80.0) or 80.0
+        is_apto = score_pct >= passing_pct
+        candidate_name = f"{hydrated_session.candidate.first_name} {hydrated_session.candidate.last_name}".strip()
+        template_name = hydrated_session.evaluation_template.name
+
         return CandidateSessionCompletionResponse(
             session_id=hydrated_session.id,
             status=hydrated_session.status,
@@ -199,6 +208,18 @@ class CandidateSessionService:
             total_score=hydrated_session.total_score
             if hydrated_session.evaluation_template.show_result_to_candidate
             else None,
+            total_score_possible=total_possible
+            if hydrated_session.evaluation_template.show_result_to_candidate
+            else None,
+            score_percentage=score_pct
+            if hydrated_session.evaluation_template.show_result_to_candidate
+            else None,
+            passing_score_percentage=passing_pct,
+            is_apto=is_apto
+            if hydrated_session.evaluation_template.show_result_to_candidate
+            else None,
+            candidate_name=candidate_name,
+            template_name=template_name,
             show_result_to_candidate=hydrated_session.evaluation_template.show_result_to_candidate,
             message=(
                 "Evaluacion cerrada por tiempo agotado."
@@ -218,6 +239,14 @@ class CandidateSessionService:
         hydrated_session = self._get_session_or_404(session_id)
         metrics = self._calculate_metrics(hydrated_session)
 
+        total_possible = sum(cat.score_possible for cat in metrics["category_results"])
+        total_obtained = sum(cat.score_obtained for cat in metrics["category_results"])
+        score_pct = round((total_obtained / total_possible * 100), 2) if total_possible > 0 else 0.0
+        passing_pct = getattr(hydrated_session.evaluation_template, "passing_score_percentage", 80.0) or 80.0
+        is_apto = score_pct >= passing_pct
+        candidate_name = f"{hydrated_session.candidate.first_name} {hydrated_session.candidate.last_name}".strip()
+        template_name = hydrated_session.evaluation_template.name
+
         return CandidateSessionResultSummaryRead(
             session_id=hydrated_session.id,
             status=hydrated_session.status,
@@ -233,6 +262,18 @@ class CandidateSessionService:
             total_score=hydrated_session.total_score
             if hydrated_session.evaluation_template.show_result_to_candidate
             else None,
+            total_score_possible=total_possible
+            if hydrated_session.evaluation_template.show_result_to_candidate
+            else None,
+            score_percentage=score_pct
+            if hydrated_session.evaluation_template.show_result_to_candidate
+            else None,
+            passing_score_percentage=passing_pct,
+            is_apto=is_apto
+            if hydrated_session.evaluation_template.show_result_to_candidate
+            else None,
+            candidate_name=candidate_name,
+            template_name=template_name,
             show_result_to_candidate=hydrated_session.evaluation_template.show_result_to_candidate,
             category_results=metrics["category_results"],
         )
@@ -296,10 +337,10 @@ class CandidateSessionService:
         if session_question.first_answered_at is None:
             session_question.first_answered_at = now
 
-        success_rate = metrics["success_rate"]
-        is_valid = success_rate == 1.0
+        success_rate = float(metrics.get("success_rate", 0.0))
+        is_valid = success_rate >= 0.70
 
-        session_question.selected_answer = "Archivo procesado (Puntaje parcial aplicable)"
+        session_question.selected_answer = f"Archivo entregado ({round(success_rate * 100, 1)}% precisión)"
         session_question.is_answered = True
         session_question.was_omitted = False
         session_question.is_correct = is_valid
@@ -478,6 +519,8 @@ class CandidateSessionService:
                 continue
             if section.difficulty is not None and question.difficulty != section.difficulty:
                 continue
+            if section.question_type is not None and question.question_type != section.question_type:
+                continue
             matching_questions.append(question)
 
         return matching_questions
@@ -609,12 +652,17 @@ class CandidateSessionService:
         session.status = "completed" if not due_to_timeout else "expired"
         session.completed_by_timeout = due_to_timeout
         session.submitted_at = now
+        
+        def _get_sq_score(sq: EvaluationSessionQuestion) -> float:
+            if sq.is_correct:
+                return float(sq.question.score)
+            return 0.0
+
         session.total_score = round(
             sum(
-                session_question.question.score
+                _get_sq_score(session_question)
                 for section in session.sections
                 for session_question in section.questions
-                if session_question.is_correct
             ),
             2,
         )
@@ -666,13 +714,29 @@ class CandidateSessionService:
                 if session_question.is_answered:
                     answered_questions += 1
                     metrics["answered_questions"] += 1
-                    if session_question.is_correct:
-                        correct_questions += 1
-                        metrics["correct_questions"] += 1
-                        metrics["score_obtained"] += question.score
+                    if question.question_type == "excel_practical":
+                        fb = None
+                        if session_question.practical_feedback:
+                            try:
+                                fb = json.loads(session_question.practical_feedback)
+                            except Exception:
+                                pass
+                        sr = float(fb.get("success_rate", 1.0 if session_question.is_correct else 0.0)) if fb else (1.0 if session_question.is_correct else 0.0)
+                        if sr >= 0.70:
+                            correct_questions += 1
+                            metrics["correct_questions"] += 1
+                        else:
+                            incorrect_questions += 1
+                            metrics["incorrect_questions"] += 1
+                        metrics["score_obtained"] += question.score * sr
                     else:
-                        incorrect_questions += 1
-                        metrics["incorrect_questions"] += 1
+                        if session_question.is_correct:
+                            correct_questions += 1
+                            metrics["correct_questions"] += 1
+                            metrics["score_obtained"] += question.score
+                        else:
+                            incorrect_questions += 1
+                            metrics["incorrect_questions"] += 1
                 elif session_question.was_omitted:
                     omitted_questions += 1
                     metrics["omitted_questions"] += 1

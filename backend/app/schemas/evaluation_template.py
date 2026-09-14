@@ -2,13 +2,14 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.schemas.question_bank import ALLOWED_DIFFICULTIES
+from app.schemas.question_bank import ALLOWED_DIFFICULTIES, ALLOWED_QUESTION_TYPES
 
 
 class EvaluationTemplateSectionBase(BaseModel):
     category_id: int
     subcategory_id: int | None = None
     difficulty: str | None = None
+    question_type: str | None = None
     question_count: int = Field(gt=0)
     time_limit_seconds: int = Field(gt=0)
     weight_override: float | None = Field(default=None, gt=0)
@@ -23,6 +24,18 @@ class EvaluationTemplateSectionBase(BaseModel):
         normalized_value = value.strip().lower()
         if normalized_value not in ALLOWED_DIFFICULTIES:
             raise ValueError("La dificultad no es valida.")
+
+        return normalized_value
+
+    @field_validator("question_type")
+    @classmethod
+    def validate_question_type(cls, value: str | None) -> str | None:
+        if value is None or not value.strip():
+            return None
+
+        normalized_value = value.strip().lower()
+        if normalized_value not in ALLOWED_QUESTION_TYPES:
+            raise ValueError("El tipo de reactivo no es valido.")
 
         return normalized_value
 
@@ -79,6 +92,7 @@ class EvaluationTemplateSectionRead(BaseModel):
     subcategory_id: int | None
     subcategory_name: str | None
     difficulty: str | None
+    question_type: str | None = None
     question_count: int
     time_limit_seconds: int
     weight_override: float | None
@@ -129,6 +143,7 @@ class TemplatePreviewSection(BaseModel):
     subcategory_id: int | None
     subcategory_name: str | None
     difficulty: str | None
+    question_type: str | None = None
     requested_question_count: int
     available_question_count: int
     sufficient: bool

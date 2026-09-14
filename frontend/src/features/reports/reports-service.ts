@@ -13,6 +13,8 @@ export interface ReportSessionItem {
   started_at: string
   submitted_at: string | null
   completed_by_timeout: boolean
+  assistance_level?: string
+  assistance_notes?: string | null
 }
 
 export interface ReportsSummary {
@@ -35,13 +37,18 @@ export interface ReportCategoryMetric {
 }
 
 export interface ReportQuestionResult {
+  session_question_id?: number
+  question_id?: number
   sort_order: number
   category_name: string
+  question_type?: string
   statement: string
   selected_answer: string | null
   correct_answer: string | null
   result_label: string
   time_spent_seconds: number
+  has_practical_submission?: boolean
+  practical_submission_filename?: string | null
 }
 
 export interface ReportSessionDetail {
@@ -54,6 +61,8 @@ export interface ReportSessionDetail {
   consumed_time_seconds: number
   started_at: string
   submitted_at: string | null
+  assistance_level?: string
+  assistance_notes?: string | null
   categories: ReportCategoryMetric[]
   questions: ReportQuestionResult[]
 }
@@ -68,12 +77,37 @@ export async function getReportSessionDetail(sessionId: number) {
   return response.data
 }
 
+export async function updateSessionAssistance(
+  sessionId: number,
+  data: { assistance_level: string; assistance_notes?: string }
+) {
+  const response = await apiClient.post<ReportSessionDetail>(
+    `/reports/sessions/${sessionId}/assistance`,
+    data
+  )
+  return response.data
+}
+
+export async function downloadCandidateExcelSubmission(
+  sessionId: number,
+  sessionQuestionId: number
+) {
+  return downloadReport(`/reports/sessions/${sessionId}/submissions/${sessionQuestionId}`)
+}
+
 export async function downloadGeneralReport(format: 'pdf' | 'xlsx') {
   return downloadReport(`/reports/general.${format}`)
 }
 
 export async function downloadSessionReport(sessionId: number, format: 'pdf' | 'xlsx') {
   return downloadReport(`/reports/sessions/${sessionId}.${format}`)
+}
+
+export async function deleteReportSession(sessionId: number) {
+  const response = await apiClient.delete<{ message: string; session_id: number }>(
+    `/reports/sessions/${sessionId}`
+  )
+  return response.data
 }
 
 async function downloadReport(path: string) {

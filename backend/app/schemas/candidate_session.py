@@ -154,6 +154,12 @@ class CandidateSessionCompletionResponse(BaseModel):
     consumed_time_seconds: int
     average_time_per_question_seconds: float
     total_score: float | None
+    total_score_possible: float | None = None
+    score_percentage: float | None = None
+    passing_score_percentage: float | None = None
+    is_apto: bool | None = None
+    candidate_name: str | None = None
+    template_name: str | None = None
     show_result_to_candidate: bool
     message: str
     category_results: list[CandidateCategoryResultRead]
@@ -172,6 +178,12 @@ class CandidateSessionResultSummaryRead(BaseModel):
     total_time_seconds: int
     average_time_per_question_seconds: float
     total_score: float | None
+    total_score_possible: float | None = None
+    score_percentage: float | None = None
+    passing_score_percentage: float | None = None
+    is_apto: bool | None = None
+    candidate_name: str | None = None
+    template_name: str | None = None
     show_result_to_candidate: bool
     category_results: list[CandidateCategoryResultRead]
 

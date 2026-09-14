@@ -30,6 +30,8 @@ class EvaluationSession(Base):
     current_section_index: Mapped[int] = mapped_column(Integer, default=0)
     current_question_index: Mapped[int] = mapped_column(Integer, default=0)
     total_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    assistance_level: Mapped[str] = mapped_column(String(30), default="none")
+    assistance_notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     access_code = relationship("CandidateAccessCode")
     evaluation_template = relationship("EvaluationTemplate", back_populates="sessions")

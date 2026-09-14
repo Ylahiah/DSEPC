@@ -19,6 +19,7 @@ class EvaluationTemplateSection(Base):
         index=True,
     )
     difficulty: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    question_type: Mapped[str | None] = mapped_column(String(30), nullable=True)
     question_count: Mapped[int] = mapped_column(Integer, default=1)
     time_limit_seconds: Mapped[int] = mapped_column(Integer, default=60)
     weight_override: Mapped[float | None] = mapped_column(Float, nullable=True)

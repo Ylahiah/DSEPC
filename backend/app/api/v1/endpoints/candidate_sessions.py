@@ -110,3 +110,20 @@ def submit_candidate_excel_exercise(
         current_section_index=current_section_index,
         current_question_index=current_question_index,
     )
+
+
+@router.get("/{session_id}/report.pdf")
+def download_candidate_pdf_report(
+    session_id: int,
+    db: Annotated[Session, Depends(get_db)],
+) -> StreamingResponse:
+    from app.services.admin_reports_service import AdminReportsService
+
+    file_buffer, filename = AdminReportsService(db).build_session_pdf(session_id)
+    return StreamingResponse(
+        file_buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+

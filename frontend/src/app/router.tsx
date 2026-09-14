@@ -8,6 +8,7 @@ import { AdminLoginPage } from '@/pages/admin-login-page'
 import { CandidateAccessPage } from '@/pages/candidate-access-page'
 import { CandidatesPage } from '@/pages/candidates-page'
 import { EvaluationTemplatesPage } from '@/pages/evaluation-templates-page'
+import { ExcelGeneratorPage } from '@/pages/excel-generator-page'
 import { NotFoundPage } from '@/pages/not-found-page'
 import { QuestionBankPage } from '@/pages/question-bank-page'
 import { ReportsPage } from '@/pages/reports-page'
@@ -17,7 +18,7 @@ import { SettingsPage } from '@/pages/settings-page'
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <CandidateAccessPage />,
+    element: <AdminLoginPage />,
   },
   {
     path: '/candidato',
@@ -37,6 +38,10 @@ export const router = createBrowserRouter([
           {
             index: true,
             element: <AdminDashboardPage />,
+          },
+          {
+            path: 'generador-ejercicios',
+            element: <ExcelGeneratorPage />,
           },
           {
             path: 'preguntas',

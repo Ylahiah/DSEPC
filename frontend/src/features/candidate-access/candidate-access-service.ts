@@ -157,6 +157,12 @@ export interface CandidateSessionCompletion {
   consumed_time_seconds: number
   average_time_per_question_seconds: number
   total_score: number | null
+  total_score_possible?: number | null
+  score_percentage?: number | null
+  passing_score_percentage?: number | null
+  is_apto?: boolean | null
+  candidate_name?: string | null
+  template_name?: string | null
   show_result_to_candidate: boolean
   message: string
   category_results: CandidateCategoryResult[]
@@ -175,6 +181,12 @@ export interface CandidateSessionResultSummary {
   total_time_seconds: number
   average_time_per_question_seconds: number
   total_score: number | null
+  total_score_possible?: number | null
+  score_percentage?: number | null
+  passing_score_percentage?: number | null
+  is_apto?: boolean | null
+  candidate_name?: string | null
+  template_name?: string | null
   show_result_to_candidate: boolean
   category_results: CandidateCategoryResult[]
 }
@@ -252,6 +264,16 @@ export async function getExcelExerciseDownload(
 ) {
   const response = await apiClient.get(
     `/candidate/sessions/${sessionId}/questions/${questionId}/excel-download`,
+    {
+      responseType: 'blob',
+    },
+  )
+  return response.data as Blob
+}
+
+export async function downloadCandidateReportPdf(sessionId: number) {
+  const response = await apiClient.get(
+    `/candidate/sessions/${sessionId}/report.pdf`,
     {
       responseType: 'blob',
     },

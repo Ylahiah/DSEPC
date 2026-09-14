@@ -64,6 +64,18 @@ class ExcelExerciseService:
         self.db.refresh(exercise)
         return self._build_read(exercise)
 
+    def _resolve_stored_path(self, raw_path: str | None) -> Path | None:
+        if not raw_path:
+            return None
+        path_obj = Path(raw_path)
+        if path_obj.exists() and path_obj.is_file():
+            return path_obj
+        clean_name = raw_path.replace("\\", "/").split("/")[-1]
+        fallback_path = self.settings.excel_exercise_storage_dir / clean_name
+        if fallback_path.exists() and fallback_path.is_file():
+            return fallback_path
+        return path_obj
+
     def update_exercise(
         self,
         exercise_id: int,
@@ -83,18 +95,18 @@ class ExcelExerciseService:
 
         if workbook is not None:
             workbook_bytes = self._read_uploaded_workbook(workbook)
-            old_path = Path(exercise.workbook_storage_path)
+            old_path = self._resolve_stored_path(exercise.workbook_storage_path)
             stored_path = self._store_workbook_bytes(
                 workbook.filename or exercise.workbook_filename,
                 workbook_bytes,
             )
             exercise.workbook_filename = workbook.filename or exercise.workbook_filename
             exercise.workbook_storage_path = str(stored_path)
-            if old_path.exists():
+            if old_path and old_path.exists():
                 old_path.unlink()
         else:
-            current_file = Path(exercise.workbook_storage_path)
-            if not current_file.exists():
+            current_file = self._resolve_stored_path(exercise.workbook_storage_path)
+            if not current_file or not current_file.exists():
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="El archivo fuente del ejercicio ya no existe en el servidor.",
@@ -106,7 +118,7 @@ class ExcelExerciseService:
                 solution_bytes=solution_bytes,
                 task_sheet_name=payload.task_sheet_name,
             )
-            old_sol_path = Path(exercise.solution_storage_path) if exercise.solution_storage_path else None
+            old_sol_path = self._resolve_stored_path(exercise.solution_storage_path)
             solution_stored_path = self._store_workbook_bytes(
                 solution_workbook.filename or "solucion.xlsx",
                 solution_bytes,
@@ -122,8 +134,8 @@ class ExcelExerciseService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Este es un ejercicio antiguo. Debes subir un Archivo Solucion para poder actualizarlo.",
                 )
-            current_sol_file = Path(exercise.solution_storage_path)
-            if not current_sol_file.exists():
+            current_sol_file = self._resolve_stored_path(exercise.solution_storage_path)
+            if not current_sol_file or not current_sol_file.exists():
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="El archivo solucion del ejercicio ya no existe en el servidor.",
@@ -135,11 +147,11 @@ class ExcelExerciseService:
 
     def delete_exercise(self, exercise_id: int) -> None:
         exercise = self._get_or_404(exercise_id)
-        stored_path = Path(exercise.workbook_storage_path)
-        sol_stored_path = Path(exercise.solution_storage_path) if exercise.solution_storage_path else None
+        stored_path = self._resolve_stored_path(exercise.workbook_storage_path)
+        sol_stored_path = self._resolve_stored_path(exercise.solution_storage_path)
         self.db.delete(exercise)
         self.db.commit()
-        if stored_path.exists():
+        if stored_path and stored_path.exists():
             stored_path.unlink()
         if sol_stored_path and sol_stored_path.exists():
             sol_stored_path.unlink()
@@ -156,8 +168,8 @@ class ExcelExerciseService:
         return self.get_download_for_exercise(exercise)
 
     def get_download_for_exercise(self, exercise: ExcelExercise) -> tuple[BytesIO, str]:
-        stored_path = Path(exercise.workbook_storage_path)
-        if not stored_path.exists():
+        stored_path = self._resolve_stored_path(exercise.workbook_storage_path)
+        if not stored_path or not stored_path.exists():
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="El archivo del ejercicio no existe en el almacenamiento.",
@@ -170,8 +182,8 @@ class ExcelExerciseService:
         exercise: ExcelExercise,
         workbook_bytes: bytes,
     ) -> dict[str, object]:
-        original_path = Path(exercise.workbook_storage_path)
-        if not original_path.exists():
+        original_path = self._resolve_stored_path(exercise.workbook_storage_path)
+        if not original_path or not original_path.exists():
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="El archivo original del ejercicio ya no existe en el servidor.",
@@ -323,6 +335,50 @@ class ExcelExerciseService:
                 detail="La hoja base del ejercicio fue modificada y debe conservarse sin cambios.",
             )
 
+    @staticmethod
+    def _clean_numeric(val: object) -> float | None:
+        if val is None:
+            return None
+        if isinstance(val, (int, float)):
+            return float(val)
+        s = str(val).strip()
+        if not s:
+            return None
+        for token in ["$", "€", "MXN", "mxn", " ", "\\xa0"]:
+            s = s.replace(token, "")
+        if s.endswith("%"):
+            s = s[:-1].strip()
+            try:
+                return float(s.replace(",", ".")) / 100.0
+            except ValueError:
+                return None
+        if "," in s and "." not in s:
+            s = s.replace(",", ".")
+        elif "," in s and "." in s:
+            s = s.replace(",", "")
+        try:
+            return float(s)
+        except ValueError:
+            return None
+
+    @classmethod
+    def _compare_values(cls, expected: object, actual: object) -> bool:
+        if expected is None and actual is None:
+            return True
+        if expected is None or actual is None:
+            return False
+
+        # 1. Try numeric comparison
+        exp_num = cls._clean_numeric(expected)
+        act_num = cls._clean_numeric(actual)
+        if exp_num is not None and act_num is not None:
+            return math.isclose(exp_num, act_num, rel_tol=1e-3, abs_tol=1e-2)
+
+        # 2. Text comparison (normalized)
+        s_exp = str(expected).strip().lower()
+        s_act = str(actual).strip().lower()
+        return s_exp == s_act
+
     def _ensure_task_results_match(
         self,
         *,
@@ -356,12 +412,8 @@ class ExcelExerciseService:
             if isinstance(actual_val, (datetime.datetime, datetime.date)):
                 actual_val = actual_val.isoformat()
             
-            if isinstance(expected_val, (int, float)) and isinstance(actual_val, (int, float)):
-                if not math.isclose(expected_val, actual_val, rel_tol=1e-5):
-                    errors.append(coord)
-            else:
-                if str(expected_val).strip() != str(actual_val).strip():
-                    errors.append(coord)
+            if not self._compare_values(expected_val, actual_val):
+                errors.append(coord)
                     
         correct_cells = total_cells - len(errors)
         
